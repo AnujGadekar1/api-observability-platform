@@ -1,0 +1,14 @@
+spring:
+  data:
+    mongodb:
+      primary:
+        uri: mongodb://localhost:27017/logs_db
+        database: logs_db
+      secondary:
+        uri: mongodb://localhost:27017/metadata_db
+        database: metadata_db
+
+# We will need this later for the rate limiter
+monitoring:
+  rate-limit:
+    default-limit: 100

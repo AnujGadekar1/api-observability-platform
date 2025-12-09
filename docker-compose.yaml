@@ -1,0 +1,52 @@
+# docker-compose.yaml
+version: '3.8'
+
+services:
+  # 1. Database
+  mongo:
+    image: mongo:latest
+    container_name: monitoring-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  # 2. Collector Service (Backend)
+  collector:
+    build: ./collector
+    container_name: monitoring-collector
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+    environment:
+      # Override localhost with 'mongo' container name
+      - SPRING_DATA_MONGODB_PRIMARY_URI=mongodb://mongo:27017/logs_db
+      - SPRING_DATA_MONGODB_SECONDARY_URI=mongodb://mongo:27017/metadata_db
+
+  # 3. Tracker Service (The Test Client)
+  tracker:
+    build: ./api-tracker
+    container_name: monitoring-tracker
+    ports:
+      - "8081:8081"
+    depends_on:
+      - collector
+    environment:
+      # Override localhost with 'collector' container name
+      - MONITORING_COLLECTOR_URL=http://collector:8080/api/v1/collector/logs
+
+  # 4. Dashboard (Frontend)
+  dashboard:
+    build: ./dashboard
+    container_name: monitoring-dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - collector
+    # Note: Frontend runs in browser, so it still talks to localhost:8080
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1/collector
+
+volumes:
+  mongo-data:
